@@ -104,3 +104,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<ApiRespo
 export async function apiPut<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
   return apiRequest<T>(path, { method: 'PUT', body })
 }
+
+export async function apiDelete<T>(path: string): Promise<ApiResponse<T>> {
+  return apiRequest<T>(path, { method: 'DELETE' })
+}

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.modules.master.services import ensure_currency_cny
 from app.modules.org.models import (
     Company,
     Permission,
@@ -18,7 +19,7 @@ from app.modules.org.models import (
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
-# Base org permissions used by later M1 APIs
+# Org + master + inventory permissions (M1/M2)
 PERMISSIONS: list[tuple[str, str, str]] = [
     ("org.company.read", "查看公司", "org"),
     ("org.company.write", "维护公司", "org"),
@@ -26,15 +27,39 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("org.user.write", "维护用户", "org"),
     ("org.role.read", "查看角色", "org"),
     ("org.role.write", "维护角色", "org"),
+    ("master.read", "查看主数据", "master"),
+    ("master.write", "维护主数据", "master"),
+    ("inventory.read", "查看库存", "inventory"),
+    ("inventory.adjust", "库存调整", "inventory"),
 ]
 
 # role_code, role_name, description, permission_codes (empty = none; admin handled as *)
 ROLES: list[tuple[str, str, str | None, list[str]]] = [
     ("admin", "系统管理员", "Full system access", []),
-    ("sales", "业务员", "Sales operations", ["org.user.read"]),
-    ("buyer", "采购员", "Purchase operations", ["org.user.read"]),
-    ("warehouse", "仓管员", "Warehouse operations", ["org.user.read"]),
-    ("finance", "财务", "Finance operations", ["org.user.read"]),
+    (
+        "sales",
+        "业务员",
+        "Sales operations",
+        ["org.user.read", "master.read", "inventory.read"],
+    ),
+    (
+        "buyer",
+        "采购员",
+        "Purchase operations",
+        ["org.user.read", "master.read", "inventory.read"],
+    ),
+    (
+        "warehouse",
+        "仓管员",
+        "Warehouse operations",
+        ["org.user.read", "master.read", "inventory.read", "inventory.adjust"],
+    ),
+    (
+        "finance",
+        "财务",
+        "Finance operations",
+        ["org.user.read", "master.read", "inventory.read"],
+    ),
 ]
 
 
@@ -127,8 +152,9 @@ def _get_or_create_admin(db: Session, company: Company, admin_role: Role) -> Use
 
 
 def run_seed(db: Session) -> dict:
-    """Seed M1 baseline data; safe to run multiple times."""
+    """Seed M1/M2 baseline data; safe to run multiple times."""
     company = _get_or_create_company(db)
+    ensure_currency_cny(db)
 
     perm_map: dict[str, Permission] = {}
     for code, name, module in PERMISSIONS:
@@ -141,7 +167,7 @@ def run_seed(db: Session) -> dict:
         for perm_code in perm_codes:
             _ensure_role_permission(db, role.id, perm_map[perm_code].id)
 
-    # Admin role gets every org permission row (API still exposes ['*'])
+    # Admin role gets every permission row (API still exposes ['*'])
     admin_role = role_map["admin"]
     for perm in perm_map.values():
         _ensure_role_permission(db, admin_role.id, perm.id)

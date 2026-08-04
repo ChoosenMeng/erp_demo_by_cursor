@@ -19,6 +19,11 @@ const allNav: NavItem[] = [
   { to: '/companies', label: '公司', permission: 'org.company.read' },
   { to: '/users', label: '用户', permission: 'org.user.read' },
   { to: '/roles', label: '角色权限', permission: 'org.role.read' },
+  { to: '/customers', label: '客户', permission: 'master.read' },
+  { to: '/suppliers', label: '供应商', permission: 'master.read' },
+  { to: '/materials', label: '物料', permission: 'master.read' },
+  { to: '/warehouses', label: '仓库', permission: 'master.read' },
+  { to: '/inventory', label: '库存', permission: 'inventory.read' },
 ]
 
 const navItems = computed(() =>
