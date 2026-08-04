@@ -1,11 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { getPreferredCompanyId, useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const companies = computed(() => auth.companies.value)
+const activeCompany = computed(() => auth.activeCompany.value)
+const selectedCompanyId = ref<number | null>(
+  getPreferredCompanyId() ?? auth.user.value?.company_id ?? null,
+)
+const switching = ref(false)
+
+watch(
+  () => [auth.user.value?.company_id, companies.value.length] as const,
+  () => {
+    selectedCompanyId.value =
+      getPreferredCompanyId() ?? auth.user.value?.company_id ?? null
+  },
+  { immediate: true },
+)
 
 type NavItem = {
   to: string
@@ -34,14 +50,35 @@ const navItems = computed(() =>
   allNav.filter((item) => !item.permission || auth.hasPermission(item.permission)),
 )
 
-const companyLabel = computed(() => {
-  const id = auth.user.value?.company_id
-  const hit = auth.user.value?.companies.find((c) => c.id === id)
-  return hit ? `${hit.name} (${hit.code})` : '-'
-})
+const entityKey = computed(
+  () => selectedCompanyId.value ?? activeCompany.value?.id ?? 'none',
+)
 
 function isActive(path: string) {
   return route.path === path
+}
+
+async function onCompanyChange(event: Event) {
+  const nextId = Number((event.target as HTMLSelectElement).value)
+  if (!Number.isFinite(nextId) || nextId <= 0) return
+  if (nextId === getPreferredCompanyId()) return
+
+  switching.value = true
+  try {
+    await auth.switchCompany(nextId)
+    selectedCompanyId.value = nextId
+    // Remount current function module under new entity (no full reload)
+    await router.replace({
+      path: route.path,
+      query: { ...route.query },
+      hash: route.hash,
+    })
+  } catch (err) {
+    selectedCompanyId.value = getPreferredCompanyId() ?? auth.user.value?.company_id ?? null
+    window.alert(err instanceof Error ? err.message : '切换公司失败')
+  } finally {
+    switching.value = false
+  }
 }
 
 async function onLogout() {
@@ -74,9 +111,26 @@ async function onLogout() {
     </aside>
     <div class="main">
       <header class="topbar">
-        <div>
-          <span class="muted">当前公司</span>
-          <strong>{{ companyLabel }}</strong>
+        <div class="company-switch">
+          <span class="muted">当前公司（Entity，优先于功能模块）</span>
+          <div class="entity-row">
+            <select
+              class="entity-select"
+              :value="selectedCompanyId ?? ''"
+              :disabled="switching || companies.length === 0"
+              @change="onCompanyChange"
+            >
+              <option v-if="companies.length === 0" value="" disabled>
+                未加载到公司，请重新登录
+              </option>
+              <option v-for="c in companies" :key="c.id" :value="c.id">
+                {{ c.name }} · {{ c.code }} · {{ c.base_currency_code }}
+              </option>
+            </select>
+            <span v-if="activeCompany" class="entity-badge">
+              {{ activeCompany.code }} / {{ activeCompany.base_currency_code }}
+            </span>
+          </div>
         </div>
         <div class="user">
           <span>{{ auth.user.value?.display_name ?? '未登录' }}</span>
@@ -84,7 +138,8 @@ async function onLogout() {
         </div>
       </header>
       <main class="content">
-        <RouterView />
+        <!-- key by entity so module pages remount when company changes -->
+        <RouterView :key="String(entityKey)" />
       </main>
     </div>
   </div>
@@ -173,6 +228,35 @@ async function onLogout() {
   font-size: 0.75rem;
 }
 
+.entity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.entity-select {
+  min-width: min(420px, 70vw);
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(15, 118, 110, 0.35);
+  font: inherit;
+  font-weight: 600;
+  background: #fff;
+  color: #0f766e;
+}
+
+.entity-badge {
+  display: inline-flex;
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.4rem;
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .user {
   display: flex;
   align-items: center;
@@ -195,6 +279,11 @@ async function onLogout() {
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;
+  }
+
+  .entity-select {
+    min-width: 0;
+    width: 100%;
   }
 }
 </style>

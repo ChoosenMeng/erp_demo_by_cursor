@@ -90,15 +90,17 @@ def build_user_me(
     db: Session, user: User, *, active_company_id: int | None = None
 ) -> UserMe:
     """Build API user profile from ORM user."""
+    # Only expose active companies in the switcher / profile
     companies = [
         CompanyBrief(
             id=link.company.id,
             code=link.company.code,
             name=link.company.name,
+            base_currency_code=link.company.base_currency_code,
             is_default=link.is_default,
         )
         for link in user.company_links
-        if link.company
+        if link.company and link.company.status == "active"
     ]
     default_company_id = next((c.id for c in companies if c.is_default), None)
     if default_company_id is None and companies:

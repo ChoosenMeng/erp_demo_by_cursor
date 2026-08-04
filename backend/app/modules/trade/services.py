@@ -229,7 +229,7 @@ def create_purchase_order(
 ) -> PurchaseOrderOut:
     """Create draft PO with lines and doc number."""
     _ensure_supplier(db, company_id, body.supplier_id)
-    rate = Decimal("1")
+    rate = Decimal(body.exchange_rate)
     doc_no = next_doc_no(db, company_id, "PO", actor_id)
     order = PurchaseOrder(
         company_id=company_id,
@@ -526,7 +526,7 @@ def create_sales_order(
     db: Session, company_id: int, body: SalesOrderCreate, actor_id: int
 ) -> SalesOrderOut:
     _ensure_customer(db, company_id, body.customer_id)
-    rate = Decimal("1")
+    rate = Decimal(body.exchange_rate)
     doc_no = next_doc_no(db, company_id, "SO", actor_id)
     order = SalesOrder(
         company_id=company_id,

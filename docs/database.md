@@ -48,8 +48,9 @@
 | `receipt_records` | M4 | 收款登记 | **已创建** |
 | `audit_logs` | M5 | 操作审计（可选） | 未创建 |
 
-**当前库内实际表：** `alembic_version` + M1 共 7 张业务表。  
-**Alembic 版本：** `20260805_0002`（`m1_org_rbac`）。
+**当前库内实际表：** 共 28 张（含 `alembic_version`），覆盖 M0–M4；未建表仅 `exchange_rates`、`audit_logs`。  
+**Alembic 版本：** `20260805_0005`（`m4_finance`）。  
+**活跃演示公司：** `USCO`（USD）、`EUCO`（EUR）；`DEFAULT` / `SECOND` 已停用。
 
 ---
 

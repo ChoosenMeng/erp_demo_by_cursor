@@ -32,7 +32,9 @@ async function onSubmit() {
     <form class="panel" @submit.prevent="onSubmit">
       <p class="eyebrow">Cursor ERP</p>
       <h1>登录</h1>
-      <p class="hint">默认账号 admin / admin123（开发环境）</p>
+      <p class="hint">
+        admin / admin123（USCO+EUCO）· sales_us / buyer_us / sales_eu / wh_eu / finance_all · 密码 demo123
+      </p>
 
       <label>
         用户名

@@ -128,6 +128,9 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  // Entity (company) context sticks across function-module navigation
+  auth.syncEntityContext()
+
   const permission = to.meta.permission as string | undefined
   if (permission && !auth.hasPermission(permission)) {
     return { path: '/' }

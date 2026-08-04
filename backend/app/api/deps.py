@@ -68,26 +68,39 @@ def get_current_user(
 def get_auth_context(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
-    x_company_id: Annotated[int | None, Header(alias="X-Company-Id")] = None,
+    x_company_id: Annotated[str | None, Header(alias="X-Company-Id")] = None,
 ) -> AuthContext:
     """Build auth context with company scope from header or default company."""
     user = load_user_graph(db, current_user.id)
     assert user is not None
 
-    company_ids = {link.company_id for link in user.company_links}
+    # Active company membership only (ignore inactive / retired companies)
+    active_links = [
+        link
+        for link in user.company_links
+        if link.company is not None and link.company.status == "active"
+    ]
+    company_ids = {link.company_id for link in active_links}
     if not company_ids:
         raise ForbiddenError("用户未关联任何公司")
 
-    if x_company_id is None:
+    parsed_company_id: int | None = None
+    if x_company_id is not None and str(x_company_id).strip() != "":
+        try:
+            parsed_company_id = int(str(x_company_id).strip())
+        except ValueError as exc:
+            raise ForbiddenError("无效的公司上下文") from exc
+
+    if parsed_company_id is None:
         default_id = next(
-            (link.company_id for link in user.company_links if link.is_default),
+            (link.company_id for link in active_links if link.is_default),
             None,
         )
         company_id = default_id if default_id is not None else next(iter(company_ids))
     else:
-        if x_company_id not in company_ids:
+        if parsed_company_id not in company_ids:
             raise ForbiddenError("无权访问该公司")
-        company_id = x_company_id
+        company_id = parsed_company_id
 
     permissions = collect_permission_codes(db, user)
     return AuthContext(user=user, company_id=company_id, permissions=permissions)

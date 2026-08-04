@@ -22,6 +22,7 @@ class PurchaseOrderCreate(BaseModel):
     supplier_id: int
     order_date: date
     currency_code: str = Field(default="CNY", min_length=3, max_length=3)
+    exchange_rate: Decimal = Field(default=Decimal("1"), gt=0)
     tax_rate: Decimal | None = None
     remark: str | None = Field(default=None, max_length=255)
     lines: list[OrderLineIn] = Field(min_length=1)
@@ -116,6 +117,7 @@ class SalesOrderCreate(BaseModel):
     customer_id: int
     order_date: date
     currency_code: str = Field(default="CNY", min_length=3, max_length=3)
+    exchange_rate: Decimal = Field(default=Decimal("1"), gt=0)
     tax_rate: Decimal | None = None
     remark: str | None = Field(default=None, max_length=255)
     lines: list[OrderLineIn] = Field(min_length=1)

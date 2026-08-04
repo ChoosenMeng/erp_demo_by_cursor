@@ -1,4 +1,4 @@
-/** Simple auth state helpers backed by localStorage + /auth/me. */
+/** Auth + entity (company) context. Entity selection outranks module navigation. */
 
 import { computed, ref } from 'vue'
 import {
@@ -6,6 +6,7 @@ import {
   apiPost,
   clearAuth,
   getAccessToken,
+  getCompanyId,
   setCompanyId,
   setTokens,
 } from '../api/client'
@@ -14,6 +15,7 @@ export type CompanyBrief = {
   id: number
   code: string
   name: string
+  base_currency_code: string
   is_default: boolean
 }
 
@@ -38,12 +40,79 @@ export type TokenPayload = {
 const user = ref<UserMe | null>(null)
 const bootstrapped = ref(false)
 
+/** Persisted entity id from localStorage (source of truth). */
+export function getPreferredCompanyId(): number | null {
+  const raw = getCompanyId()
+  if (raw == null || raw === '') return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function companyAllowed(me: UserMe, companyId: number): boolean {
+  return me.companies.some((c) => c.id === companyId)
+}
+
+/**
+ * Bind profile to preferred entity. Never let a bare /me default overwrite
+ * a valid persisted company selection (entity > function).
+ */
+function applyUser(me: UserMe, preferCompanyId?: number | null): void {
+  const preferred = preferCompanyId ?? getPreferredCompanyId()
+  let companyId = me.company_id
+
+  if (preferred != null && companyAllowed(me, preferred)) {
+    companyId = preferred
+    setCompanyId(preferred)
+  } else if (me.company_id != null) {
+    setCompanyId(me.company_id)
+    companyId = me.company_id
+  }
+
+  user.value = { ...me, company_id: companyId }
+}
+
 export function useAuthStore() {
   const isAuthenticated = computed(() => !!getAccessToken() && !!user.value)
+
+  const companies = computed(() => user.value?.companies ?? [])
+
+  const activeCompany = computed(() => {
+    const id = user.value?.company_id ?? getPreferredCompanyId()
+    if (id == null) return null
+    return user.value?.companies.find((c) => c.id === id) ?? null
+  })
 
   function hasPermission(code: string): boolean {
     const perms = user.value?.permissions ?? []
     return perms.includes('*') || perms.includes(code)
+  }
+
+  /** Re-assert entity context on every route change (entity > function). */
+  function syncEntityContext(): void {
+    if (!user.value) return
+    const preferred = getPreferredCompanyId()
+    if (preferred == null) {
+      if (user.value.company_id != null) {
+        setCompanyId(user.value.company_id)
+      }
+      return
+    }
+    if (!companyAllowed(user.value, preferred)) {
+      // Saved entity no longer valid — fall back to server/default profile company
+      const fallback =
+        user.value.companies.find((c) => c.is_default)?.id ??
+        user.value.companies[0]?.id ??
+        null
+      if (fallback != null) {
+        setCompanyId(fallback)
+        user.value = { ...user.value, company_id: fallback }
+      }
+      return
+    }
+    if (user.value.company_id !== preferred) {
+      user.value = { ...user.value, company_id: preferred }
+    }
+    setCompanyId(preferred)
   }
 
   async function login(username: string, password: string): Promise<void> {
@@ -53,8 +122,9 @@ export function useAuthStore() {
       false,
     )
     setTokens(res.data.access_token, res.data.refresh_token)
-    user.value = res.data.user
+    // Fresh login: use server default entity (USCO)
     setCompanyId(res.data.user.company_id)
+    applyUser(res.data.user, res.data.user.company_id)
   }
 
   async function fetchMe(): Promise<void> {
@@ -62,18 +132,65 @@ export function useAuthStore() {
       user.value = null
       return
     }
+    const preferred = getPreferredCompanyId()
+    if (preferred != null) {
+      setCompanyId(preferred)
+    }
     const res = await apiGet<UserMe>('/api/v1/auth/me')
-    user.value = res.data
-    setCompanyId(res.data.company_id)
+    applyUser(res.data, preferred)
+  }
+
+  async function switchCompany(companyId: number): Promise<void> {
+    if (!user.value || !companyAllowed(user.value, companyId)) {
+      throw new Error('无权切换到该公司（未关联或已停用）')
+    }
+    // Entity first: persist before any API / navigation
+    setCompanyId(companyId)
+    const res = await apiGet<UserMe>('/api/v1/auth/me')
+    applyUser(res.data, companyId)
+    if (user.value?.company_id !== companyId) {
+      throw new Error(
+        `公司切换未生效（期望 ${companyId}，实际 ${user.value?.company_id}）`,
+      )
+    }
   }
 
   async function bootstrap(): Promise<void> {
     if (bootstrapped.value) return
     try {
+      const saved = getPreferredCompanyId()
+      if (saved != null) {
+        setCompanyId(saved)
+      }
       await fetchMe()
+      // Drop stale inactive entity ids (e.g. DEFAULT) left in localStorage
+      syncEntityContext()
+      const preferred = getPreferredCompanyId()
+      if (
+        preferred != null &&
+        user.value != null &&
+        !companyAllowed(user.value, preferred)
+      ) {
+        const fallback =
+          user.value.companies.find((c) => c.is_default)?.id ??
+          user.value.companies[0]?.id ??
+          null
+        setCompanyId(fallback)
+        if (fallback != null) {
+          user.value = { ...user.value, company_id: fallback }
+        }
+      }
     } catch {
-      clearAuth()
-      user.value = null
+      // Entity header may be stale/inactive; retry once with cleared entity
+      try {
+        setCompanyId(null)
+        const res = await apiGet<UserMe>('/api/v1/auth/me')
+        applyUser(res.data, res.data.company_id)
+        syncEntityContext()
+      } catch {
+        clearAuth()
+        user.value = null
+      }
     } finally {
       bootstrapped.value = true
     }
@@ -85,7 +202,7 @@ export function useAuthStore() {
         await apiPost('/api/v1/auth/logout', {})
       }
     } catch {
-      // ignore network errors on logout
+      // ignore
     } finally {
       clearAuth()
       user.value = null
@@ -96,9 +213,13 @@ export function useAuthStore() {
     user,
     bootstrapped,
     isAuthenticated,
+    companies,
+    activeCompany,
     hasPermission,
+    syncEntityContext,
     login,
     fetchMe,
+    switchCompany,
     bootstrap,
     logout,
   }

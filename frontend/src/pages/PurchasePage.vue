@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { apiGet, apiPost } from '../api/client'
+import { useAuthStore } from '../stores/auth'
 
 type Line = {
   id: number
@@ -16,9 +17,14 @@ type PO = {
   supplier_id: number
   status: string
   amount: string
+  base_amount: string
+  currency_code: string
+  exchange_rate: string
   order_date: string
   lines: Line[]
 }
+
+type Currency = { code: string; name: string }
 
 type StockIn = {
   id: number
@@ -30,11 +36,13 @@ type StockIn = {
 
 type Option = { id: number; code: string; name: string }
 
+const auth = useAuthStore()
 const orders = ref<PO[]>([])
 const stockIns = ref<StockIn[]>([])
 const suppliers = ref<Option[]>([])
 const materials = ref<Option[]>([])
 const warehouses = ref<Option[]>([])
+const currencies = ref<Currency[]>([])
 const error = ref('')
 const form = ref({
   supplier_id: 0,
@@ -42,6 +50,8 @@ const form = ref({
   material_id: 0,
   qty: '10',
   unit_price: '12.5',
+  currency_code: 'CNY',
+  exchange_rate: '1',
 })
 const inForm = ref({
   po_id: 0,
@@ -51,18 +61,23 @@ const inForm = ref({
 async function load() {
   error.value = ''
   try {
-    const [po, si, s, m, w] = await Promise.all([
+    const [po, si, s, m, w, c] = await Promise.all([
       apiGet<{ items: PO[] }>('/api/v1/purchase/orders'),
       apiGet<{ items: StockIn[] }>('/api/v1/purchase/stock-ins'),
       apiGet<{ items: Option[] }>('/api/v1/master/suppliers'),
       apiGet<{ items: Option[] }>('/api/v1/master/materials'),
       apiGet<{ items: Option[] }>('/api/v1/master/warehouses'),
+      apiGet<Currency[]>('/api/v1/master/currencies'),
     ])
     orders.value = po.data.items
     stockIns.value = si.data.items
     suppliers.value = s.data.items
     materials.value = m.data.items
     warehouses.value = w.data.items
+    currencies.value = c.data
+    const base = auth.activeCompany.value?.base_currency_code ?? 'CNY'
+    form.value.currency_code = base
+    form.value.exchange_rate = '1'
     if (!form.value.supplier_id && suppliers.value[0]) form.value.supplier_id = suppliers.value[0].id
     if (!form.value.material_id && materials.value[0]) form.value.material_id = materials.value[0].id
     if (!inForm.value.warehouse_id && warehouses.value[0]) {
@@ -79,7 +94,8 @@ async function createPo() {
     await apiPost('/api/v1/purchase/orders', {
       supplier_id: Number(form.value.supplier_id),
       order_date: form.value.order_date,
-      currency_code: 'CNY',
+      currency_code: form.value.currency_code,
+      exchange_rate: form.value.exchange_rate,
       lines: [
         {
           material_id: Number(form.value.material_id),
@@ -135,7 +151,10 @@ onMounted(() => {
 <template>
   <section class="page">
     <h1>采购</h1>
-    <p>流程：创建草稿 → 确认 → 入库过账。权限：`purchase.read` / `purchase.write`。</p>
+    <p>
+      流程：创建草稿 → 确认 → 入库过账。当前公司本位币：
+      {{ auth.activeCompany.value?.base_currency_code ?? '-' }}。可开外币单并填汇率（换算本位币）。
+    </p>
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="card">
@@ -149,7 +168,13 @@ onMounted(() => {
           <option v-for="m in materials" :key="m.id" :value="m.id">{{ m.code }} {{ m.name }}</option>
         </select>
         <input v-model="form.qty" placeholder="数量" />
-        <input v-model="form.unit_price" placeholder="单价" />
+        <input v-model="form.unit_price" placeholder="单价（原币）" />
+        <select v-model="form.currency_code">
+          <option v-for="c in currencies" :key="c.code" :value="c.code">
+            {{ c.code }} {{ c.name }}
+          </option>
+        </select>
+        <input v-model="form.exchange_rate" placeholder="汇率→本位币" />
         <button type="button" @click="createPo">创建草稿</button>
       </div>
     </div>
@@ -168,7 +193,8 @@ onMounted(() => {
           <tr>
             <th>单号</th>
             <th>状态</th>
-            <th>金额</th>
+            <th>原币</th>
+            <th>本位币</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -176,7 +202,8 @@ onMounted(() => {
           <tr v-for="po in orders" :key="po.id">
             <td>{{ po.doc_no }}</td>
             <td>{{ po.status }}</td>
-            <td>{{ po.amount }}</td>
+            <td>{{ po.amount }} {{ po.currency_code }} @{{ po.exchange_rate }}</td>
+            <td>{{ po.base_amount }}</td>
             <td class="ops">
               <button v-if="po.status === 'draft'" type="button" @click="confirmPo(po.id)">确认</button>
               <button

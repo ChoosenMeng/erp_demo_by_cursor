@@ -519,12 +519,24 @@ draft → confirmed → partial / completed → closed
 | Conda 环境 `cursor-erp-demo` | Python 3.13 |
 | 后端 | FastAPI + Alembic head（含 M1–M4 表） |
 | 前端 | Vue3 控制台：组织 / 主数据 / 库存 / 采销 / 财务 / 仪表盘 |
-| 种子 | `python -m app.scripts.seed`（可选 `--with-second-company`） |
+| 种子 | `python -m app.scripts.seed`（停用 DEFAULT；填充 USCO/EUCO 全模块假数据） |
 | 测试 | `pytest`（采销闭环、财务、多公司隔离） |
 | 文档 | [docs/m0–m5_status.md](docs/)、[database.md](docs/database.md)、[backlog.md](docs/backlog.md) |
 
-默认账号：`admin` / `admin123`  
-默认主数据：`CUS001` / `SUP001` / `FG-001` / `RM-001` / `WH-MAIN`。
+**演示账号（`python -m app.scripts.seed`）**
+
+| 账号 | 密码 | 角色 | 公司 / 本位币 |
+| --- | --- | --- | --- |
+| `admin` | `admin123` | 管理员 | USCO(USD) + EUCO(EUR)，默认 USCO |
+| `sales_us` | `demo123` | 业务员 | USCO / USD |
+| `buyer_us` | `demo123` | 采购员 | USCO / USD |
+| `sales_eu` | `demo123` | 业务员 | EUCO / EUR |
+| `wh_eu` | `demo123` | 仓管 | EUCO / EUR |
+| `finance_all` | `demo123` | 财务 | USCO + EUCO |
+
+`DEFAULT`（演示公司）已停用，不出现在公司切换器。  
+币种主数据：CNY / USD / EUR / HKD。顶栏可切换 USCO/EUCO；采销单可填原币与汇率（换算本位币）。  
+每家公司种子：客户×3、供应商×2、物料×5、仓库×2；含采购→入库→应付付款、销售→出库→应收收款及库存调整。
 
 下一期需求见 [docs/backlog.md](docs/backlog.md)。
 

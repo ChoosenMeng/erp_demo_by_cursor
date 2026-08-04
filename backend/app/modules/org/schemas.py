@@ -22,6 +22,7 @@ class CompanyBrief(BaseModel):
     id: int
     code: str
     name: str
+    base_currency_code: str = "CNY"
     is_default: bool
 
 

@@ -31,23 +31,41 @@ def _page_meta(total: int, page: int, page_size: int) -> PageMeta:
     return PageMeta(page=page, page_size=page_size, total=total)
 
 
+# Demo currencies for multi-currency MVP
+DEMO_CURRENCIES: list[tuple[str, str, str | None, int]] = [
+    ("CNY", "人民币", "¥", 2),
+    ("USD", "美元", "$", 2),
+    ("EUR", "欧元", "€", 2),
+    ("HKD", "港币", "HK$", 2),
+]
+
+
 def ensure_currency_cny(db: Session, actor_id: int | None = None) -> Currency:
     """Ensure CNY exists (idempotent)."""
-    row = db.get(Currency, "CNY")
-    if row:
-        return row
-    row = Currency(
-        code="CNY",
-        name="人民币",
-        symbol="¥",
-        decimal_places=2,
-        status="active",
-        created_by=actor_id,
-        updated_by=actor_id,
-    )
-    db.add(row)
-    db.flush()
-    return row
+    return ensure_currencies(db, actor_id=actor_id)["CNY"]
+
+
+def ensure_currencies(
+    db: Session, actor_id: int | None = None
+) -> dict[str, Currency]:
+    """Ensure demo currencies exist (CNY/USD/EUR/HKD)."""
+    result: dict[str, Currency] = {}
+    for code, name, symbol, decimals in DEMO_CURRENCIES:
+        row = db.get(Currency, code)
+        if row is None:
+            row = Currency(
+                code=code,
+                name=name,
+                symbol=symbol,
+                decimal_places=decimals,
+                status="active",
+                created_by=actor_id,
+                updated_by=actor_id,
+            )
+            db.add(row)
+            db.flush()
+        result[code] = row
+    return result
 
 
 def list_currencies(db: Session) -> list[CurrencyOut]:
