@@ -512,22 +512,21 @@ draft → confirmed → partial / completed → closed
 
 ## 13. 当前状态与下一步
 
-**当前状态：M0 已完工并验收通过。**
+**当前状态：M0 + M1 已完成。**
 
 | 验收项 | 结果 |
 | --- | --- |
-| Conda 环境 `cursor-erp-demo` | Python 3.13.14 @ `E:\conda\conda_envs\cursor-erp-demo` |
-| 后端启动 / 健康检查 | `/api/v1/health` 返回 healthy，MySQL `erp_demo` 8.4.6 |
-| Alembic | `20260804_0001` baseline 已 upgrade |
-| 前端构建 | `npm run build` 通过 |
-| 测试 | `pytest` 2 passed |
+| Conda 环境 `cursor-erp-demo` | Python 3.13.14 |
+| 后端 / 健康检查 | `/api/v1/health` + MySQL `erp_demo` |
+| Alembic | `20260805_0002`（含 M1 组织表） |
+| 认证 / 组织 API | login/refresh/logout/me + companies/users/roles |
+| 前端 | 登录页、鉴权路由、用户/角色/公司简页 |
+| 测试 | `pytest` 11 passed |
 
-**建议下一步（需你确认后再执行）：M1 组织权限**
+默认账号（种子）：`admin` / `admin123`  
+详情见 [docs/m1_status.md](docs/m1_status.md)。
 
-1. 公司 / 用户 / 角色 / 权限数据模型与 Alembic 迁移  
-2. 登录与 JWT  
-3. 公司上下文（`X-Company-Id`）  
-4. 前端登录页与按权限菜单  
+**建议下一步（需你确认后再执行）：M2 主数据 + 库存**
 
 ---
 

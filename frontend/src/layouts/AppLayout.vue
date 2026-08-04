@@ -1,15 +1,43 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 
-const navItems = [
+type NavItem = {
+  to: string
+  label: string
+  permission?: string
+}
+
+const allNav: NavItem[] = [
   { to: '/', label: '首页' },
   { to: '/health', label: '健康检查' },
+  { to: '/companies', label: '公司', permission: 'org.company.read' },
+  { to: '/users', label: '用户', permission: 'org.user.read' },
+  { to: '/roles', label: '角色权限', permission: 'org.role.read' },
 ]
+
+const navItems = computed(() =>
+  allNav.filter((item) => !item.permission || auth.hasPermission(item.permission)),
+)
+
+const companyLabel = computed(() => {
+  const id = auth.user.value?.company_id
+  const hit = auth.user.value?.companies.find((c) => c.id === id)
+  return hit ? `${hit.name} (${hit.code})` : '-'
+})
 
 function isActive(path: string) {
   return route.path === path
+}
+
+async function onLogout() {
+  await auth.logout()
+  await router.push('/login')
 }
 </script>
 
@@ -35,9 +63,21 @@ function isActive(path: string) {
         </RouterLink>
       </nav>
     </aside>
-    <main class="content">
-      <RouterView />
-    </main>
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <span class="muted">当前公司</span>
+          <strong>{{ companyLabel }}</strong>
+        </div>
+        <div class="user">
+          <span>{{ auth.user.value?.display_name ?? '未登录' }}</span>
+          <button type="button" @click="onLogout">退出</button>
+        </div>
+      </header>
+      <main class="content">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -77,12 +117,6 @@ function isActive(path: string) {
   background: #0f766e;
   color: #fff;
   font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.brand strong {
-  display: block;
-  font-size: 1rem;
 }
 
 .brand p {
@@ -98,7 +132,6 @@ function isActive(path: string) {
   border-radius: 0.55rem;
   color: #314241;
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .nav-link:hover {
@@ -110,6 +143,42 @@ function isActive(path: string) {
   color: #fff;
 }
 
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 2rem;
+  border-bottom: 1px solid rgba(28, 43, 42, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.muted {
+  display: block;
+  color: #5b6b6a;
+  font-size: 0.75rem;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user button {
+  border: 0;
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+}
+
 .content {
   padding: 2rem;
 }
@@ -117,11 +186,6 @@ function isActive(path: string) {
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    border-right: none;
-    border-bottom: 1px solid rgba(28, 43, 42, 0.08);
   }
 }
 </style>
