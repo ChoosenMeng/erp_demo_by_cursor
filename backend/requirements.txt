@@ -1,0 +1,29 @@
+# Web
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.20
+
+# Validation / settings
+pydantic==2.11.7
+pydantic-settings==2.10.1
+email-validator==2.2.0
+
+# Database
+SQLAlchemy==2.0.42
+alembic==1.16.4
+PyMySQL==1.1.1
+cryptography==45.0.5
+
+# Auth
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
+
+# Utils
+python-dotenv==1.1.1
+httpx==0.28.1
+
+# Dev / test
+pytest==8.4.1
+pytest-asyncio==1.1.0
+ruff==0.12.7
