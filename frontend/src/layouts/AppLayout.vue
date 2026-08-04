@@ -24,6 +24,8 @@ const allNav: NavItem[] = [
   { to: '/materials', label: '物料', permission: 'master.read' },
   { to: '/warehouses', label: '仓库', permission: 'master.read' },
   { to: '/inventory', label: '库存', permission: 'inventory.read' },
+  { to: '/purchase', label: '采购', permission: 'purchase.read' },
+  { to: '/sales', label: '销售', permission: 'sales.read' },
 ]
 
 const navItems = computed(() =>

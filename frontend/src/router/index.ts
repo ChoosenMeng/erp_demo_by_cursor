@@ -7,7 +7,9 @@ import HomePage from '../pages/HomePage.vue'
 import InventoryPage from '../pages/InventoryPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import MaterialsPage from '../pages/MaterialsPage.vue'
+import PurchasePage from '../pages/PurchasePage.vue'
 import RolesPage from '../pages/RolesPage.vue'
+import SalesPage from '../pages/SalesPage.vue'
 import SuppliersPage from '../pages/SuppliersPage.vue'
 import UsersPage from '../pages/UsersPage.vue'
 import WarehousesPage from '../pages/WarehousesPage.vue'
@@ -76,6 +78,18 @@ const router = createRouter({
           name: 'inventory',
           component: InventoryPage,
           meta: { permission: 'inventory.read' },
+        },
+        {
+          path: 'purchase',
+          name: 'purchase',
+          component: PurchasePage,
+          meta: { permission: 'purchase.read' },
+        },
+        {
+          path: 'sales',
+          name: 'sales',
+          component: SalesPage,
+          meta: { permission: 'sales.read' },
         },
       ],
     },

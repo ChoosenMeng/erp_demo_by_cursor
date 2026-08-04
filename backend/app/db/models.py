@@ -20,3 +20,14 @@ from app.modules.org.models import (  # noqa: F401
     UserCompany,
     UserRole,
 )
+from app.modules.trade.models import (  # noqa: F401
+    DocumentSequence,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    SalesOrder,
+    SalesOrderLine,
+    StockInOrder,
+    StockInOrderLine,
+    StockOutOrder,
+    StockOutOrderLine,
+)
