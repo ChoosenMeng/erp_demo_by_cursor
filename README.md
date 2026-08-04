@@ -10,8 +10,8 @@
 | --- | --- |
 | 文档类型 | 需求文档 + 开发计划 |
 | 目标读者 | 开发者、产品评审、演示相关方 |
-| 当前阶段 | M0 脚手架已搭建（可本地启动） |
-| 版本 | v0.1 |
+| 当前阶段 | **M0–M5 MVP 已完成**（可演示） |
+| 版本 | v0.2 |
 
 ---
 
@@ -433,43 +433,43 @@ draft → confirmed → partial / completed → closed
 
 ### M1 — 组织与权限（含扩展点）
 
-- [ ] `companies`、`users`、`roles`、`permissions`、关联表
-- [ ] 注册（可选）/ 登录 / JWT
-- [ ] 权限依赖注入与路由保护
-- [ ] 公司上下文中间件（`company_id`）
-- [ ] 前端：登录页、布局、菜单按权限渲染
-- [ ] 种子：管理员 + 默认公司（本位币 CNY）
+- [x] `companies`、`users`、`roles`、`permissions`、关联表
+- [x] 登录 / JWT（refresh）
+- [x] 权限依赖注入与路由保护
+- [x] 公司上下文（`X-Company-Id`）
+- [x] 前端：登录页、布局、菜单按权限渲染
+- [x] 种子：管理员 + 默认公司（本位币 CNY）
 
 ### M2 — 主数据与库存
 
-- [ ] 客户、供应商、物料、仓库 API + 页面
-- [ ] 币种主数据（至少 CNY）；金额公共类型
-- [ ] 库存余额表、出入库流水、库存服务（入/出/查）
-- [ ] 并发场景：出库库存不足事务回滚（测试覆盖）
+- [x] 客户、供应商、物料、仓库 API + 页面
+- [x] 币种主数据（至少 CNY）
+- [x] 库存余额表、出入库流水、库存服务（入/出/查）
+- [x] 出库库存不足事务回滚（测试覆盖）
 
 ### M3 — 采购 / 销售闭环
 
-- [ ] 采购订单 CRUD + 状态流转
-- [ ] 采购入库过账 → 库存增加
-- [ ] 销售订单 CRUD + 状态流转
-- [ ] 销售出库过账 → 库存扣减
-- [ ] 单据编号规则（按公司可配置预留）
-- [ ] 前端列表/详情/确认/出入库操作流
+- [x] 采购订单 CRUD + 状态流转
+- [x] 采购入库过账 → 库存增加
+- [x] 销售订单 CRUD + 状态流转
+- [x] 销售出库过账 → 库存扣减
+- [x] 单据编号规则（`document_sequences`）
+- [x] 前端列表/确认/出入库操作流
 
 ### M4 — 财务简版与仪表盘
 
-- [ ] 确认/出入库后生成应收应付（规则写清并单测）
-- [ ] 收付款登记与状态
-- [ ] 仪表盘 API + 前端图表
-- [ ] 原币/本位币字段在财务单据落齐（汇率 MVP=1）
+- [x] 出入库过账后生成应收应付（规则写清并单测）
+- [x] 收付款登记与状态
+- [x] 仪表盘 API + 前端趋势条
+- [x] 原币/本位币字段落齐（汇率 MVP=1）
 
 ### M5 — 打磨与演示
 
-- [ ] 演示用种子数据（第二公司可选开关，验证模型扩展性）
-- [ ] OpenAPI 与模块说明
-- [ ] 基础 E2E 或关键 API 集成测试
-- [ ] Docker Compose（可选）
-- [ ] 已知问题列表与下一期 backlog（多公司切换 UI、汇率、盘点等）
+- [x] 演示用种子数据（`--with-second-company` 可选）
+- [x] OpenAPI 与模块 tags（`/docs`）
+- [x] 关键 API 集成测试（采销/财务/多公司隔离）
+- [ ] Docker Compose（可选，见 [docs/backlog.md](docs/backlog.md)）
+- [x] 已知问题与下一期 backlog（[docs/backlog.md](docs/backlog.md)）
 
 ---
 
@@ -510,23 +510,23 @@ draft → confirmed → partial / completed → closed
 
 ---
 
-## 13. 当前状态与下一步
+## 13. 当前状态
 
-**当前状态：M0 + M1 已完成。**
+**当前状态：M0–M5 MVP 已完成，可本地演示。**
 
 | 验收项 | 结果 |
 | --- | --- |
-| Conda 环境 `cursor-erp-demo` | Python 3.13.14 |
-| 后端 / 健康检查 | `/api/v1/health` + MySQL `erp_demo` |
-| Alembic | `20260805_0002`（含 M1 组织表） |
-| 认证 / 组织 API | login/refresh/logout/me + companies/users/roles |
-| 前端 | 登录页、鉴权路由、用户/角色/公司简页 |
-| 测试 | `pytest` 11 passed |
+| Conda 环境 `cursor-erp-demo` | Python 3.13 |
+| 后端 | FastAPI + Alembic head（含 M1–M4 表） |
+| 前端 | Vue3 控制台：组织 / 主数据 / 库存 / 采销 / 财务 / 仪表盘 |
+| 种子 | `python -m app.scripts.seed`（可选 `--with-second-company`） |
+| 测试 | `pytest`（采销闭环、财务、多公司隔离） |
+| 文档 | [docs/m0–m5_status.md](docs/)、[database.md](docs/database.md)、[backlog.md](docs/backlog.md) |
 
-默认账号（种子）：`admin` / `admin123`  
-详情见 [docs/m1_status.md](docs/m1_status.md)。
+默认账号：`admin` / `admin123`  
+默认主数据：`CUS001` / `SUP001` / `FG-001` / `RM-001` / `WH-MAIN`。
 
-**建议下一步（需你确认后再执行）：M2 主数据 + 库存**
+下一期需求见 [docs/backlog.md](docs/backlog.md)。
 
 ---
 
@@ -539,10 +539,12 @@ draft → confirmed → partial / completed → closed
 | 过账 | 单据生效并更新库存/财务余额的动作 |
 | RBAC | 基于角色的访问控制 |
 
-## 附录 B — 演示脚本（M5 目标）
+## 附录 B — 演示脚本（约 15 分钟）
 
-1. 管理员登录  
-2. 维护客户、供应商、物料、仓库  
-3. 创建并确认采购订单 → 入库 → 查看库存  
-4. 创建并确认销售订单 → 出库 → 查看库存与流水  
-5. 查看应收应付与仪表盘
+1. `alembic upgrade head` → `python -m app.scripts.seed` → 启动前后端  
+2. `admin` / `admin123` 登录  
+3. 查看客户 / 供应商 / 物料 / 仓库种子数据  
+4. 采购：草稿 → 确认 → 入库过账 → 查看库存  
+5. 销售：草稿 → 确认 → 出库过账 → 查看流水  
+6. 财务：查看应付/应收并登记收付款  
+7. 仪表盘：核对销售额、采购额、待办订单

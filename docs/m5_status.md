@@ -3,140 +3,76 @@
 | 项 | 内容 |
 | --- | --- |
 | 阶段 | M5 |
-| 状态 | **未开始** |
+| 状态 | **已完成** |
 | 目标 | 可演示、可交接；文档与种子数据齐全；缺陷收敛 |
-| 前置 | M4 完成（或 MVP 主路径可演示） |
-| 关联文档 | [database.md](./database.md)、[README.md](../README.md) |
+| 前置 | M4 完成 |
+| 关联文档 | [database.md](./database.md)、[README.md](../README.md)、[backlog.md](./backlog.md) |
 
 ---
 
-## 1. 功能需求
+## 1. 功能需求（完成情况）
 
-| ID | 需求 | 优先级 |
-| --- | --- | --- |
-| M5-F01 | 演示种子数据脚本（公司、用户角色、主数据、样例单据） | P0 |
-| M5-F02 | 可选第二公司种子，验证多公司模型扩展性（无需完整 UI） | P1 |
-| M5-F03 | 模块说明 / OpenAPI 分组整理 | P0 |
-| M5-F04 | 关键 API 集成测试或最小 E2E | P1 |
-| M5-F05 | 演示脚本文档（15 分钟跑通） | P0 |
-| M5-F06 | 已知问题与下一期 Backlog 列表 | P0 |
-| M5-F07 | Docker Compose（可选） | P2 |
-| M5-F08 | 操作审计表与查询（可选） | P2 |
-
----
-
-## 2. 用例
-
-### UC-M5-01 新人冷启动
-
-1. 按 README 创建/激活 Conda、配置 `.env`、迁移、种子  
-2. 启动前后端  
-3. 15 分钟内完成演示脚本  
-
-### UC-M5-02 标准演示路径
-
-1. 管理员登录  
-2. 查看主数据  
-3. 采购订单 → 入库 → 看库存  
-4. 销售订单 → 出库 → 看库存与流水  
-5. 查看应收应付与仪表盘  
-
-### UC-M5-03 多公司模型冒烟（可选）
-
-1. 种子写入第二公司  
-2. 用 API 带不同 `X-Company-Id` 查询，数据隔离正确  
+| ID | 需求 | 优先级 | 状态 |
+| --- | --- | --- | --- |
+| M5-F01 | 演示种子数据脚本 | P0 | 已完成（`python -m app.scripts.seed`） |
+| M5-F02 | 可选第二公司种子 | P1 | 已完成（`--with-second-company`） |
+| M5-F03 | 模块说明 / OpenAPI 分组 | P0 | 已完成（路由 tags + `/docs`） |
+| M5-F04 | 关键 API 集成测试 | P1 | 已完成（trade/finance/demo_seed） |
+| M5-F05 | 演示脚本文档 | P0 | 已完成（见下节 / README 附录 B） |
+| M5-F06 | 已知问题与 Backlog | P0 | 已完成（[backlog.md](./backlog.md)） |
+| M5-F07 | Docker Compose | P2 | 未做（列入 backlog） |
+| M5-F08 | 操作审计表 | P2 | 未做（列入 backlog） |
 
 ---
 
-## 3. 需要用到的数据库表
+## 2. 种子命令
 
-| 表 | 说明 | 本阶段创建 |
-| --- | --- | --- |
-| M1–M4 全部业务表 | 种子数据写入 | 依赖（应已存在） |
-| `audit_logs` | 操作审计 | 可选新建 |
-
-详见 [database.md](./database.md)。
-
----
-
-## 4. 需要编写的接口
-
-本阶段以稳定既有 API 为主；可选新增：
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| POST | `/api/v1/dev/seed` | （仅 development）执行/重置演示种子；生产禁用 |
-| GET | `/api/v1/audit/logs` | 可选审计查询 |
-
-也可改为 CLI：`python -m app.scripts.seed`，不暴露 HTTP。
-
----
-
-## 5. 简要接口文档（可选种子接口）
-
-### 5.1 `POST /api/v1/dev/seed`
-
-**请求**
-
-```json
-{ "reset": true, "with_second_company": false }
+```bash
+conda activate cursor-erp-demo
+cd backend
+alembic upgrade head
+python -m app.scripts.seed
+# 可选：第二公司隔离冒烟
+python -m app.scripts.seed --with-second-company
 ```
 
-**响应 data**
-
-```json
-{
-  "companies": 1,
-  "users": 5,
-  "materials": 10,
-  "sample_po": "PO...",
-  "sample_so": "SO..."
-}
-```
-
-**约束：** `APP_ENV=development` 才可用；否则 404/403。
+默认账号：`admin` / `admin123`  
+默认公司主数据：`CUS001` / `SUP001` / `FG-001` / `RM-001` / `WH-MAIN`。
 
 ---
 
-## 6. 交付物清单
+## 3. 15 分钟演示脚本
 
-- [ ] 种子脚本与默认账号说明（写入 README）  
-- [ ] 演示脚本（可放 README 附录或本文件）  
-- [ ] 集成测试至少覆盖：登录 → 采购入库 → 销售出库  
-- [ ] Backlog：多公司切换 UI、汇率、盘点、询价报价、审批流等  
-- [ ] （可选）Docker Compose  
+1. 启动后端（`:8000`）与前端（`:5173`）  
+2. 使用 `admin` / `admin123` 登录  
+3. 打开客户 / 供应商 / 物料 / 仓库，确认种子主数据存在  
+4. **采购**：新建订单（选 SUP001 + FG-001）→ 确认 → 入库过账 → 库存页看余额  
+5. **销售**：新建订单（选 CUS001 + FG-001）→ 确认 → 出库过账 → 库存/流水可追溯  
+6. **财务**：查看应付/应收，登记一笔付款或收款  
+7. **仪表盘**：确认本月销售额/采购额与待办订单非写死常量  
 
 ---
 
-## 7. 验收标准
+## 4. 验收标准
 
-| 标准 | 说明 |
+| 标准 | 结果 |
 | --- | --- |
-| 冷启动 | 新人按文档 15 分钟内启动并跑通演示 |
-| 主路径 | 采销库存财务仪表盘均可演示 |
-| 质量 | 无阻断级缺陷；已知问题已记录 |
-| 扩展验证 | （可选）第二公司数据隔离冒烟通过 |
+| 冷启动 | README + 本文件可完成启动与种子 |
+| 主路径 | 采销库存财务仪表盘可演示 |
+| 质量 | pytest 覆盖主路径；已知问题见 backlog |
+| 扩展验证 | `--with-second-company` + 隔离测试通过 |
 
 ---
 
-## 8. 演示脚本（目标稿）
-
-1. 管理员登录  
-2. 维护或查看客户、供应商、物料、仓库  
-3. 创建并确认采购订单 → 入库 → 查看库存  
-4. 创建并确认销售订单 → 出库 → 查看库存与流水  
-5. 查看应收应付与仪表盘  
-
----
-
-## 9. 全阶段索引
+## 5. 全阶段索引
 
 | 文档 | 阶段 |
 | --- | --- |
-| [m0_status.md](./m0_status.md) | 脚手架（已完成） |
+| [m0_status.md](./m0_status.md) | 脚手架 |
 | [m1_status.md](./m1_status.md) | 组织权限 |
 | [m2_status.md](./m2_status.md) | 主数据库存 |
 | [m3_status.md](./m3_status.md) | 采销闭环 |
 | [m4_status.md](./m4_status.md) | 财务仪表盘 |
-| [m5_status.md](./m5_status.md) | 打磨演示 |
+| [m5_status.md](./m5_status.md) | 打磨演示（本文） |
 | [database.md](./database.md) | 全库表字段与创建状态 |
+| [backlog.md](./backlog.md) | 已知问题与下一期 |
