@@ -1,5 +1,11 @@
 """Import all ORM models so Base.metadata is complete for Alembic."""
 
+from app.modules.finance.models import (  # noqa: F401
+    ApBill,
+    ArBill,
+    PaymentRecord,
+    ReceiptRecord,
+)
 from app.modules.inventory.models import (  # noqa: F401
     InventoryBalance,
     InventoryTransaction,

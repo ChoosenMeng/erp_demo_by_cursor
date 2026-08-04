@@ -17,9 +17,16 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+# Ensure finance hooks are active even when TestClient skips lifespan
+from app.modules.finance.hooks import register_finance_hooks
+
+register_finance_hooks()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     setup_logging(settings.debug)
+    register_finance_hooks()
     logger.info("Starting %s (%s)", settings.app_name, settings.app_env)
     yield
     logger.info("Shutting down %s", settings.app_name)

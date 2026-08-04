@@ -42,10 +42,10 @@
 | `sales_order_lines` | M3 | 销售订单行 | **已创建** |
 | `stock_out_orders` | M3 | 出库单头 | **已创建** |
 | `stock_out_order_lines` | M3 | 出库单行 | **已创建** |
-| `ap_bills` | M4 | 应付单 | 未创建 |
-| `ar_bills` | M4 | 应收单 | 未创建 |
-| `payment_records` | M4 | 付款登记 | 未创建 |
-| `receipt_records` | M4 | 收款登记 | 未创建 |
+| `ap_bills` | M4 | 应付单 | **已创建** |
+| `ar_bills` | M4 | 应收单 | **已创建** |
+| `payment_records` | M4 | 付款登记 | **已创建** |
+| `receipt_records` | M4 | 收款登记 | **已创建** |
 | `audit_logs` | M5 | 操作审计（可选） | 未创建 |
 
 **当前库内实际表：** `alembic_version` + M1 共 7 张业务表。  

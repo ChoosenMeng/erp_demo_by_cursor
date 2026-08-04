@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '../layouts/AppLayout.vue'
 import CompaniesPage from '../pages/CompaniesPage.vue'
 import CustomersPage from '../pages/CustomersPage.vue'
+import DashboardPage from '../pages/DashboardPage.vue'
+import FinancePage from '../pages/FinancePage.vue'
 import HealthPage from '../pages/HealthPage.vue'
 import HomePage from '../pages/HomePage.vue'
 import InventoryPage from '../pages/InventoryPage.vue'
@@ -90,6 +92,18 @@ const router = createRouter({
           name: 'sales',
           component: SalesPage,
           meta: { permission: 'sales.read' },
+        },
+        {
+          path: 'finance',
+          name: 'finance',
+          component: FinancePage,
+          meta: { permission: 'finance.read' },
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: DashboardPage,
+          meta: { permission: 'dashboard.read' },
         },
       ],
     },

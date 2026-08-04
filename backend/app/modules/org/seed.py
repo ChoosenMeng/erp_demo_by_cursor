@@ -35,6 +35,9 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("purchase.write", "维护采购", "purchase"),
     ("sales.read", "查看销售", "sales"),
     ("sales.write", "维护销售", "sales"),
+    ("finance.read", "查看财务", "finance"),
+    ("finance.write", "维护财务", "finance"),
+    ("dashboard.read", "查看仪表盘", "dashboard"),
 ]
 
 # role_code, role_name, description, permission_codes (empty = none; admin handled as *)
@@ -83,7 +86,14 @@ ROLES: list[tuple[str, str, str | None, list[str]]] = [
         "finance",
         "财务",
         "Finance operations",
-        ["org.user.read", "master.read", "inventory.read"],
+        [
+            "org.user.read",
+            "master.read",
+            "inventory.read",
+            "finance.read",
+            "finance.write",
+            "dashboard.read",
+        ],
     ),
 ]
 
