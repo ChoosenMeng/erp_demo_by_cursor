@@ -143,6 +143,44 @@ curl -s http://127.0.0.1:8000/api/v1/health
 curl -s http://YOUR_SERVER_IP/api/v1/health
 ```
 
+
+### MYSQL_USER=root container crash / MYSQL_USER=root 导致容器失败
+
+Official `mysql:8` image: `MYSQL_ROOT_PASSWORD` is for **root**; `MYSQL_USER` + `MYSQL_PASSWORD` create a **non-root** app user.  
+官方 `mysql:8`：`MYSQL_ROOT_PASSWORD` 给 **root**；`MYSQL_USER` + `MYSQL_PASSWORD` 创建 **非 root** 应用用户。
+
+If logs show / 若日志出现：
+
+`MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user`
+
+Fix on the server (do **not** paste passwords into chat) / 服务器上修复（**不要**把密码贴到聊天里）：
+
+```bash
+# 1) Edit deploy/.env — MYSQL_USER must be erp (NOT root)
+#    编辑 deploy/.env：MYSQL_USER 必须是 erp（不能是 root）
+sudo nano /opt/erp_demo/deploy/.env
+# MYSQL_USER=erp
+# MYSQL_ROOT_PASSWORD=...
+# MYSQL_PASSWORD=...
+
+# 2) Align backend DATABASE_URL to the same erp user/password
+#    让 backend DATABASE_URL 与 erp 用户/密码一致
+sudo nano /opt/erp_demo/backend/.env
+# DATABASE_URL=mysql+pymysql://erp:YOUR_PASSWORD@127.0.0.1:3306/erp_demo?charset=utf8mb4
+
+# 3) Recreate MySQL volume (only if data can be discarded) / 可丢数据时重建卷
+cd /opt/erp_demo
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env down -v
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+
+# 4) Re-run deploy / 重新部署
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=feature/m0-m1-scaffold \
+  bash /opt/erp_demo/deploy/deploy.sh
+```
+
+`deploy.sh` now refuses `MYSQL_USER=root` or empty before `compose up`.  
+`deploy.sh` 在 `compose up` 前会拒绝 `MYSQL_USER=root` 或空值。
+
 ### MySQL timeout on small VPS / 小内存 VPS 上 MySQL 超时
 
 `deploy.sh` waits ~5 minutes for MySQL. On ~1GiB RAM hosts, first `mysql:8` boot (InnoDB init) is slow and may need swap.  

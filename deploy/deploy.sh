@@ -95,6 +95,15 @@ dump_mysql_logs() {
   log "----- end mysql logs -----"
 }
 
+validate_mysql_env() {
+  # Official mysql:8: MYSQL_USER must be a non-root app user (e.g. erp)
+  # 官方 mysql:8：MYSQL_USER 必须是非 root 应用用户（例如 erp）
+  local user="${MYSQL_USER:-}"
+  if [[ -z "$user" || "$user" == "root" ]]; then
+    die "MYSQL_USER must be a non-root app user (e.g. erp), not empty and not root. Edit deploy/.env: set MYSQL_USER=erp, MYSQL_ROOT_PASSWORD=..., MYSQL_PASSWORD=..., and align backend/.env DATABASE_URL to mysql+pymysql://erp:...@127.0.0.1:3306/... / MYSQL_USER 必须是非 root 应用用户（如 erp），不能为空也不能是 root。请编辑 deploy/.env：MYSQL_USER=erp，并设置 MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD，同时让 backend/.env 的 DATABASE_URL 使用 erp 用户。"
+  fi
+}
+
 wait_mysql() {
   # Wait until MySQL accepts connections (small VPS: first boot can take several minutes)
   # 等待 MySQL 可连接（小内存 VPS 首次启动可能需数分钟）
@@ -143,6 +152,8 @@ wait_mysql() {
 
   dump_mysql_logs
   log "Hints / 排查提示:"
+  log "  - MYSQL_USER=root is invalid: use MYSQL_USER=erp (see deploy/.env.example)."
+  log "    MYSQL_USER=root 无效：请改为 MYSQL_USER=erp（见 deploy/.env.example）。"
   log "  - Password mismatch: deploy/.env MYSQL_ROOT_PASSWORD may differ from volume (first init). Recreate volume if safe."
   log "    密码不一致：.env 可能与数据卷首次初始化密码不同；确认可丢数据后重建卷。"
   log "  - OOM: free -h; dmesg | tail; MySQL 8 needs RAM+swap on ~1GiB hosts."
@@ -168,6 +179,7 @@ main() {
   source "$COMPOSE_ENV"
   set +a
   MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-erp_root_change_me}"
+  validate_mysql_env
 
   cd "$DEPLOY_PATH"
   log "Pulling branch $BRANCH / 拉取分支 $BRANCH"
