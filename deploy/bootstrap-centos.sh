@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# First-time CentOS bootstrap for ERP Demo (Docker MySQL + Nginx + Node + Python)
-# CentOS 首次环境初始化（Docker MySQL + Nginx + Node + Python）
+# First-time CentOS bootstrap for ERP Demo (Docker MySQL + Nginx + Node + uv/Python)
+# CentOS 首次环境初始化（Docker MySQL + Nginx + Node + uv/Python）
+#
+# Uses Astral uv instead of Miniconda (better for ~1GiB RAM VPS).
+# 使用 Astral uv 而非 Miniconda（更适合约 1GiB 内存的 VPS）。
 #
 # Run as root (or sudo) once / 请以 root（或 sudo）执行一次:
 #   bash deploy/bootstrap-centos.sh
@@ -94,44 +97,70 @@ install_node() {
   npm -v
 }
 
+ensure_swap_hint() {
+  # Small VPS tip only — do not auto-create swap (user already may have done it)
+  # 小内存提示：不自动创建 swap（用户可能已手动添加）
+  local mem_kb
+  mem_kb="$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  if [[ "${mem_kb:-0}" -gt 0 && "${mem_kb}" -lt 1500000 ]]; then
+    if ! swapon --show 2>/dev/null | grep -q .; then
+      log "WARN: RAM <1.5GiB and no swap. Consider 2GiB swap for npm/build. / 内存较小且无 swap，建议加 2GiB swap"
+    else
+      log "Low-RAM host with swap detected — OK for uv/npm / 小内存主机已有 swap"
+    fi
+  fi
+}
+
+install_uv() {
+  # Install Astral uv into /usr/local/bin for all users
+  # 将 Astral uv 安装到 /usr/local/bin，供全局使用
+  export PATH="/usr/local/bin:/root/.local/bin:${PATH}"
+  if command -v uv >/dev/null 2>&1; then
+    log "uv already installed: $(uv --version) / uv 已安装"
+    return 0
+  fi
+  log "Installing uv (lightweight Python toolchain) / 安装 uv（轻量 Python 工具链）"
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  if [[ -x /root/.local/bin/uv ]]; then
+    ln -sfn /root/.local/bin/uv /usr/local/bin/uv
+  fi
+  command -v uv >/dev/null 2>&1 || die "uv install failed / uv 安装失败"
+  uv --version
+}
+
 install_python() {
-  if command -v python3.13 >/dev/null 2>&1 || command -v python3.12 >/dev/null 2>&1; then
-    log "Python 3.12+ already present / 已有 Python 3.12+"
+  # Prefer uv on small VPS — Miniconda solver often OOMs under ~1GiB RAM
+  # 小内存 VPS 优先用 uv；Miniconda 求解在约 1GiB 内存下容易 OOM
+  ensure_swap_hint
+  export PATH="/usr/local/bin:/root/.local/bin:${PATH}"
+
+  local venv_py="$DEPLOY_PATH/.venv/bin/python"
+  if [[ -x "$venv_py" ]]; then
+    log "Project venv already exists: $venv_py / 项目虚拟环境已存在"
+    ln -sfn "$venv_py" /usr/local/bin/python3.13
+    "$venv_py" --version
     return 0
   fi
 
-  # Reuse existing Miniconda if present / 若已安装 Miniconda 则复用，避免重装报错
-  if [[ ! -x /opt/miniconda3/bin/conda ]]; then
-    log "Installing Miniconda (Python 3.13) / 安装 Miniconda（Python 3.13）"
-    local installer="/tmp/Miniconda3.sh"
-    curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o "$installer"
-    bash "$installer" -b -p /opt/miniconda3
-  else
-    log "Miniconda already installed at /opt/miniconda3 / Miniconda 已存在，跳过安装"
+  if command -v python3.13 >/dev/null 2>&1 || command -v python3.12 >/dev/null 2>&1; then
+    log "Python 3.12+ already present / 已有 Python 3.12+"
+    local existing
+    existing="$(command -v python3.13 || command -v python3.12)"
+    mkdir -p "$DEPLOY_PATH"
+    "$existing" -m venv "$DEPLOY_PATH/.venv"
+    ln -sfn "$DEPLOY_PATH/.venv/bin/python" /usr/local/bin/python3.13
+    "$DEPLOY_PATH/.venv/bin/python" --version
+    return 0
   fi
 
-  # shellcheck disable=SC1091
-  source /opt/miniconda3/etc/profile.d/conda.sh
-
-  # Accept Anaconda ToS for non-interactive installs (required on newer conda)
-  # 新版 conda 非交互安装需先接受服务条款
-  if conda tos accept --help >/dev/null 2>&1; then
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
-  fi
-
-  if ! conda env list | awk '{print $1}' | grep -qx 'cursor-erp-demo'; then
-    # Prefer conda-forge to reduce reliance on defaults channels
-    # 优先使用 conda-forge，减少对 defaults 频道依赖
-    log "Creating conda env cursor-erp-demo / 创建 conda 环境 cursor-erp-demo"
-    conda create -y -n cursor-erp-demo -c conda-forge python=3.13 pip
-  else
-    log "Conda env cursor-erp-demo already exists / conda 环境已存在"
-  fi
-
-  ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/python /usr/local/bin/python3.13
-  ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/pip /usr/local/bin/pip3.13
-  python3.13 --version
+  install_uv
+  log "Installing Python 3.13 via uv and creating .venv / 用 uv 安装 Python 3.13 并创建 .venv"
+  mkdir -p "$DEPLOY_PATH"
+  uv python install 3.13
+  uv venv "$DEPLOY_PATH/.venv" --python 3.13
+  ln -sfn "$DEPLOY_PATH/.venv/bin/python" /usr/local/bin/python3.13
+  ln -sfn "$DEPLOY_PATH/.venv/bin/pip" /usr/local/bin/pip3.13 2>/dev/null || true
+  "$DEPLOY_PATH/.venv/bin/python" --version
 }
 
 clone_repo() {
@@ -198,8 +227,10 @@ main() {
   install_docker
   install_nginx
   install_node
-  install_python
+  # Clone before Python so .venv can live under DEPLOY_PATH
+  # 先克隆仓库，再在 DEPLOY_PATH 下创建 .venv
   clone_repo
+  install_python
   prepare_env_files
   install_systemd_nginx
   open_firewall
@@ -209,6 +240,7 @@ main() {
   log "  1) Edit $DEPLOY_PATH/deploy/.env and $DEPLOY_PATH/backend/.env"
   log "  2) DEPLOY_PATH=$DEPLOY_PATH bash $DEPLOY_PATH/deploy/deploy.sh"
   log "  3) sudo systemctl enable --now erp-api"
+  log "Note: Python via uv (not Miniconda) for low-RAM VPS / 小内存用 uv，不用 Miniconda"
 }
 
 main "$@"

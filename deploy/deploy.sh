@@ -28,14 +28,19 @@ need_cmd() {
 }
 
 pick_python() {
-  # Prefer 3.13 → 3.12 → python3 / 优先使用 3.13，其次 3.12，再次 python3
+  # Prefer project venv → 3.13 → 3.12 → python3
+  # 优先项目 venv，其次 3.13 / 3.12 / python3
+  if [[ -x "$DEPLOY_PATH/.venv/bin/python" ]]; then
+    echo "$DEPLOY_PATH/.venv/bin/python"
+    return 0
+  fi
   for candidate in python3.13 python3.12 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
       echo "$candidate"
       return 0
     fi
   done
-  die "No python3 found. Install Miniconda/Python 3.12+ first. / 未找到 python3，请先安装。"
+  die "No python3 found. Run bootstrap (uv) or install Python 3.12+. / 未找到 python3，请先 bootstrap（uv）。"
 }
 
 compose() {
@@ -94,18 +99,33 @@ main() {
   compose -f "$COMPOSE_FILE" --env-file "$COMPOSE_ENV" up -d
   wait_mysql
 
-  PYTHON_BIN="$(pick_python)"
+  export PATH="/usr/local/bin:/root/.local/bin:${PATH}"
   VENV_DIR="$DEPLOY_PATH/.venv"
+
   if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-    log "Creating venv with $PYTHON_BIN / 使用 $PYTHON_BIN 创建虚拟环境"
-    "$PYTHON_BIN" -m venv "$VENV_DIR"
+    if command -v uv >/dev/null 2>&1; then
+      # uv is lighter than conda on ~1GiB RAM hosts / 约 1GiB 内存主机上比 conda 更省
+      log "Creating venv with uv (Python 3.13) / 使用 uv 创建虚拟环境"
+      uv python install 3.13 || true
+      uv venv "$VENV_DIR" --python 3.13
+    else
+      PYTHON_BIN="$(pick_python)"
+      log "Creating venv with $PYTHON_BIN / 使用 $PYTHON_BIN 创建虚拟环境"
+      "$PYTHON_BIN" -m venv "$VENV_DIR"
+    fi
   fi
 
   log "Installing backend dependencies / 安装后端依赖"
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
-  pip install --upgrade pip
-  pip install -r backend/requirements.txt
+  if command -v uv >/dev/null 2>&1; then
+    # Faster / lower peak memory than plain pip on small VPS
+    # 小 VPS 上比裸 pip 更快、峰值内存更低
+    uv pip install --python "$VENV_DIR/bin/python" -r backend/requirements.txt
+  else
+    pip install --upgrade pip
+    pip install -r backend/requirements.txt
+  fi
 
   log "Running DB migrations / 执行数据库迁移"
   cd "$DEPLOY_PATH/backend"

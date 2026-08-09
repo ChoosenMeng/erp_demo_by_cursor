@@ -7,9 +7,26 @@ Target layout / 目标形态：
 - Nginx `:80` → `frontend/dist` + reverse proxy `/api`
 - systemd `erp-api` → uvicorn on `127.0.0.1:8000`
 - Docker → MySQL 8 only（仅数据库容器）
+- Python → **uv** + project `.venv`（不再用 Miniconda，适合约 1GiB 小内存 VPS）
 
 Access by **IP over HTTP** (certificates are usually for domains; HTTPS can be added later).  
 用 **IP + HTTP** 访问（证书一般绑域名；HTTPS 可后续再加）。
+
+### Low-RAM tip / 小内存提示
+
+If the host has ~1GiB RAM, add **2GiB swap** before first build (does **not** create a separate Alibaba Cloud bill item; it only uses disk space):
+
+约 1GiB 内存主机建议先加 **2GiB swap** 再首次构建（**不会**单独产生阿里云 Swap 费用，只占用云盘空间）：
+
+```bash
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress
+sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
+free -h
+```
+
+Skip Miniconda on these hosts — use bootstrap/`uv` instead.  
+此类主机请跳过 Miniconda，改用 bootstrap / `uv`。
 
 ---
 
@@ -17,8 +34,8 @@ Access by **IP over HTTP** (certificates are usually for domains; HTTPS can be a
 
 | File | Purpose |
 | --- | --- |
-| `bootstrap-centos.sh` | First-time server setup / 服务器首次初始化 |
-| `deploy.sh` | Pull + build + migrate + restart / 拉取编译迁移重启 |
+| `bootstrap-centos.sh` | First-time setup (Docker/Nginx/Node/**uv**) / 首次初始化 |
+| `deploy.sh` | Pull + uv/pip + build + migrate + restart / 拉取编译迁移重启 |
 | `docker-compose.yml` | MySQL container / MySQL 容器 |
 | `.env.example` | MySQL passwords template / MySQL 密码模板 |
 | `backend.env.production.example` | Backend `.env` template / 后端环境模板 |
