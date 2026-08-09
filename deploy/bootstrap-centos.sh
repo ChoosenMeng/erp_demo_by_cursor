@@ -44,10 +44,24 @@ install_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker already installed / Docker 已安装"
   else
-    log "Installing Docker Engine / 安装 Docker Engine"
-    # Official convenience script works on many CentOS / Stream versions
-    # 官方便捷脚本兼容多数 CentOS / Stream
-    curl -fsSL https://get.docker.com | sh
+    log "Installing Docker Engine via yum/dnf repo / 通过 yum/dnf 仓库安装 Docker"
+    # Avoid get.docker.com on CentOS 8 EOL: it may pull missing packages
+    # (e.g. docker-model-plugin) and fail.
+    # CentOS 8 已 EOL，官方便捷脚本常因缺失包（如 docker-model-plugin）失败。
+    "$PKG" -y install dnf-plugins-core || true
+    if [[ ! -f /etc/yum.repos.d/docker-ce.repo ]]; then
+      dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
+        || yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    fi
+    # Do not install docker-model-plugin (unavailable on CentOS 8)
+    # 不要安装 docker-model-plugin（CentOS 8 仓库中不存在）
+    "$PKG" -y install \
+      docker-ce \
+      docker-ce-cli \
+      containerd.io \
+      docker-compose-plugin \
+      docker-buildx-plugin \
+      || die "Docker package install failed / Docker 软件包安装失败"
   fi
   systemctl enable --now docker
   if ! docker compose version >/dev/null 2>&1; then
