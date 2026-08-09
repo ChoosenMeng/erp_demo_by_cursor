@@ -28,6 +28,21 @@ free -h
 Skip Miniconda on these hosts — use bootstrap/`uv` instead.  
 此类主机请跳过 Miniconda，改用 bootstrap / `uv`。
 
+**Frontend build / 前端构建：** `deploy.sh` runs `npx vite build` (skips `vue-tsc`) with `NODE_OPTIONS=--max-old-space-size=384`. Full typecheck stays on local/CI via `npm run build`.  
+**前端构建：** `deploy.sh` 使用 `npx vite build`（跳过 `vue-tsc`），并设置 `NODE_OPTIONS=--max-old-space-size=384`。完整类型检查仍在本地/CI 用 `npm run build`。
+
+If a previous `npm run build` is hung / 若旧的 `npm run build` 已卡住：
+
+```bash
+# Ctrl+C the hung deploy, then free memory / 先 Ctrl+C 卡住的部署，再腾内存
+free -h
+pkill -f 'vue-tsc|vite|node' || true   # only if safe / 确认无其他关键 Node 任务后再杀
+cd /opt/erp_demo && sudo git pull   # or re-run deploy which pulls BRANCH
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=main bash /opt/erp_demo/deploy/deploy.sh
+# Manual frontend only / 仅手动构建前端:
+# cd /opt/erp_demo/frontend && NODE_OPTIONS=--max-old-space-size=384 npx vite build
+```
+
 ---
 
 ## 0. Files in this folder / 本目录文件

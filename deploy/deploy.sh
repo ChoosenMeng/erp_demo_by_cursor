@@ -229,8 +229,15 @@ main() {
   # Same-origin API via Nginx — keep VITE_API_BASE empty
   # 通过 Nginx 同源反代 API，保持 VITE_API_BASE 为空
   export VITE_API_BASE=""
+  # Cap Node heap on ~769Mi hosts; vue-tsc OOMs — skip typecheck on server
+  # 小内存主机限制 Node 堆；vue-tsc 易 OOM，服务器跳过完整类型检查
+  export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=384}"
+  log "Memory before frontend build / 前端构建前内存:"
+  free -h || true
   npm ci
-  npm run build
+  # Production bundle only (CI/local still use npm run build with vue-tsc)
+  # 仅打包生产资源（完整 vue-tsc 检查仍在本地/CI 的 npm run build）
+  npx vite build
   cd "$DEPLOY_PATH"
 
   log "Restarting API service / 重启 API 服务"
