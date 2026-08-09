@@ -59,7 +59,7 @@ Upload or curl the bootstrap script after the repo exists, or clone manually the
 ```bash
 # Example / 示例
 export DEPLOY_PATH=/opt/erp_demo
-export BRANCH=feature/m0-m1-scaffold
+export BRANCH=main
 export SERVER_IP=YOUR_SERVER_IP
 export GIT_REPO=https://github.com/ChoosenMeng/erp_demo_by_cursor.git
 
@@ -85,7 +85,7 @@ sudo nano /opt/erp_demo/backend/.env
 First deploy:
 
 ```bash
-sudo DEPLOY_PATH=/opt/erp_demo BRANCH=feature/m0-m1-scaffold \
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=main \
   bash /opt/erp_demo/deploy/deploy.sh
 sudo systemctl enable --now erp-api
 sudo systemctl status erp-api --no-pager
@@ -107,7 +107,7 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 | `SSH_PORT` | `51822` | yes |
 | `SSH_PRIVATE_KEY` | full private key PEM | yes |
 | `DEPLOY_PATH` | `/opt/erp_demo` | optional |
-| `DEPLOY_BRANCH` | `feature/m0-m1-scaffold` | optional |
+| `DEPLOY_BRANCH` | `main`（默认） | optional |
 
 SSH key tips / SSH 密钥建议：
 
@@ -123,12 +123,13 @@ If `SSH_USER` is not root, ensure it can run `systemctl` / docker（或改脚本
 
 ## 3. Trigger deploy / 触发部署
 
-After secrets + first bootstrap are done:
+After secrets + first bootstrap are done / 配置好 Secrets 且完成首次 bootstrap 后：
 
-1. Push to `feature/m0-m1-scaffold` or `main`，或  
-2. Actions → **Deploy to Server** → **Run workflow**
+1. **自动**：push / merge 到 **`main`** 即触发生产部署  
+2. **手动**：Actions → **Deploy to Server** → **Run workflow**（任意分支可用，含 feature）
 
-Pipeline will SSH in and run `deploy/deploy.sh`.
+Pipeline will SSH in and run `deploy/deploy.sh`.  
+流水线会 SSH 到服务器执行 `deploy/deploy.sh`（默认拉 `main`；可用 Secret `DEPLOY_BRANCH` 覆盖）。
 
 ---
 
@@ -174,7 +175,7 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env down -v
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 
 # 4) Re-run deploy / 重新部署
-sudo DEPLOY_PATH=/opt/erp_demo BRANCH=feature/m0-m1-scaffold \
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=main \
   bash /opt/erp_demo/deploy/deploy.sh
 ```
 
@@ -203,7 +204,7 @@ docker volume rm erp_demo_erp_mysql_data   # name may vary: docker volume ls | g
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 
 # 3) Re-run deploy / 重新部署
-sudo DEPLOY_PATH=/opt/erp_demo BRANCH=feature/m0-m1-scaffold \
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=main \
   bash /opt/erp_demo/deploy/deploy.sh
 ```
 

@@ -11,14 +11,14 @@
 # Env overrides / 可用环境变量覆盖:
 #   DEPLOY_PATH=/opt/erp_demo
 #   GIT_REPO=https://github.com/ChoosenMeng/erp_demo_by_cursor.git
-#   BRANCH=feature/m0-m1-scaffold
+#   BRANCH=main
 #   SERVER_IP=x.x.x.x
 
 set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/erp_demo}"
 GIT_REPO="${GIT_REPO:-https://github.com/ChoosenMeng/erp_demo_by_cursor.git}"
-BRANCH="${BRANCH:-feature/m0-m1-scaffold}"
+BRANCH="${BRANCH:-main}"
 SERVER_IP="${SERVER_IP:-}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }

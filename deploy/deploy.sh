@@ -4,12 +4,12 @@
 #
 # Usage / 用法:
 #   DEPLOY_PATH=/opt/erp_demo bash deploy/deploy.sh
-#   BRANCH=feature/m0-m1-scaffold bash deploy/deploy.sh
+#   BRANCH=main bash deploy/deploy.sh
 
 set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/erp_demo}"
-BRANCH="${BRANCH:-feature/m0-m1-scaffold}"
+BRANCH="${BRANCH:-main}"
 COMPOSE_FILE="${DEPLOY_PATH}/deploy/docker-compose.yml"
 COMPOSE_ENV="${DEPLOY_PATH}/deploy/.env"
 
