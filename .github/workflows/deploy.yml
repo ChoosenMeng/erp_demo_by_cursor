@@ -51,5 +51,14 @@ jobs:
             echo "Deploy path: $DEPLOY_PATH"
             echo "Branch: $BRANCH"
             test -d "$DEPLOY_PATH/.git"
+            # Sync git BEFORE deploy.sh so a dirty server tree cannot block the first update.
+            # 先强制对齐远程，避免服务器上旧版 deploy.sh 因本地修改无法 checkout。
+            # Ignored files (.env, .venv) are kept (no git clean -x).
+            # 忽略文件（.env、.venv）会保留（不使用 git clean -x）。
+            cd "$DEPLOY_PATH"
+            git fetch origin
+            git reset --hard HEAD || true
+            git checkout -f "$BRANCH"
+            git reset --hard "origin/$BRANCH"
             test -x "$DEPLOY_PATH/deploy/deploy.sh" || chmod +x "$DEPLOY_PATH/deploy/deploy.sh"
             DEPLOY_PATH="$DEPLOY_PATH" BRANCH="$BRANCH" bash "$DEPLOY_PATH/deploy/deploy.sh"
