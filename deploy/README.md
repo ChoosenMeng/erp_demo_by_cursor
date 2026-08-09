@@ -31,6 +31,9 @@ Skip Miniconda on these hosts — use bootstrap/`uv` instead.
 **Frontend build / 前端构建：** `deploy.sh` runs `npx vite build` (skips `vue-tsc`) with `NODE_OPTIONS=--max-old-space-size=384`. Full typecheck stays on local/CI via `npm run build`.  
 **前端构建：** `deploy.sh` 使用 `npx vite build`（跳过 `vue-tsc`），并设置 `NODE_OPTIONS=--max-old-space-size=384`。完整类型检查仍在本地/CI 用 `npm run build`。
 
+**Demo seed / 演示种子数据：** After `alembic upgrade head`, `deploy.sh` runs `python -m app.scripts.seed` by default (idempotent; safe for demo VPS). Set `SKIP_SEED=1` to skip.  
+**演示种子数据：** `alembic upgrade head` 之后默认执行 `python -m app.scripts.seed`（幂等，适合演示 VPS）。设 `SKIP_SEED=1` 可跳过。
+
 If a previous `npm run build` is hung / 若旧的 `npm run build` 已卡住：
 
 ```bash
@@ -50,7 +53,7 @@ sudo DEPLOY_PATH=/opt/erp_demo BRANCH=main bash /opt/erp_demo/deploy/deploy.sh
 | File | Purpose |
 | --- | --- |
 | `bootstrap-centos.sh` | First-time setup (Docker/Nginx/Node/**uv**) / 首次初始化 |
-| `deploy.sh` | Pull + uv/pip + build + migrate + restart / 拉取编译迁移重启 |
+| `deploy.sh` | Pull + uv/pip + build + migrate + **seed** + restart / 拉取编译迁移种子重启 |
 | `docker-compose.yml` | MySQL container / MySQL 容器 |
 | `.env.example` | MySQL passwords template / MySQL 密码模板 |
 | `backend.env.production.example` | Backend `.env` template / 后端环境模板 |
