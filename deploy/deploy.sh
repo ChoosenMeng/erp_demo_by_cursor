@@ -185,8 +185,13 @@ main() {
   cd "$DEPLOY_PATH"
   log "Pulling branch $BRANCH / 拉取分支 $BRANCH"
   git fetch origin
-  git checkout "$BRANCH"
+  # Discard local tracked edits on the server so checkout cannot abort.
+  # Keep ignored files (.env, .venv) — do not use git clean -x.
+  # 丢弃服务器上对已跟踪文件的本地修改，避免 checkout 失败；保留 .env/.venv 等忽略文件。
+  git reset --hard HEAD || true
+  git checkout -f "$BRANCH"
   git reset --hard "origin/$BRANCH"
+  git clean -fd
 
   log "Starting MySQL container / 启动 MySQL 容器"
   compose -f "$COMPOSE_FILE" --env-file "$COMPOSE_ENV" up -d
