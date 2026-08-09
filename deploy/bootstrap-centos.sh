@@ -106,7 +106,17 @@ install_python() {
   bash "$installer" -b -p /opt/miniconda3
   # shellcheck disable=SC1091
   source /opt/miniconda3/etc/profile.d/conda.sh
-  conda create -y -n cursor-erp-demo python=3.13 pip
+
+  # Accept Anaconda ToS for non-interactive installs (required on newer conda)
+  # 新版 conda 非交互安装需先接受服务条款
+  if conda tos accept --help >/dev/null 2>&1; then
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
+  fi
+
+  # Prefer conda-forge to reduce reliance on defaults channels
+  # 优先使用 conda-forge，减少对 defaults 频道依赖
+  conda create -y -n cursor-erp-demo -c conda-forge python=3.13 pip
   ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/python /usr/local/bin/python3.13
   ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/pip /usr/local/bin/pip3.13
   python3.13 --version
