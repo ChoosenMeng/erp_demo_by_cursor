@@ -5,6 +5,7 @@
 # Usage / 用法:
 #   DEPLOY_PATH=/opt/erp_demo bash deploy/deploy.sh
 #   BRANCH=main bash deploy/deploy.sh
+#   SKIP_SEED=1 bash deploy/deploy.sh   # skip demo seed / 跳过种子数据
 
 set -euo pipefail
 
@@ -222,6 +223,16 @@ main() {
   log "Running DB migrations / 执行数据库迁移"
   cd "$DEPLOY_PATH/backend"
   alembic upgrade head
+
+  # Demo seed is idempotent (safe to re-run); suitable for demo VPS.
+  # Demo 种子数据幂等（可重复执行），适合演示用 VPS。
+  # Skip with SKIP_SEED=1 if you only want migrate / 仅迁移时设 SKIP_SEED=1 跳过
+  if [[ "${SKIP_SEED:-0}" == "1" ]]; then
+    log "Skipping demo seed (SKIP_SEED=1) / 跳过 demo 种子数据（SKIP_SEED=1）"
+  else
+    log "Seeding demo data / 写入 demo 种子数据"
+    python -m app.scripts.seed
+  fi
   cd "$DEPLOY_PATH"
 
   log "Building frontend / 构建前端"
@@ -229,8 +240,15 @@ main() {
   # Same-origin API via Nginx — keep VITE_API_BASE empty
   # 通过 Nginx 同源反代 API，保持 VITE_API_BASE 为空
   export VITE_API_BASE=""
+  # Cap Node heap on ~769Mi hosts; vue-tsc OOMs — skip typecheck on server
+  # 小内存主机限制 Node 堆；vue-tsc 易 OOM，服务器跳过完整类型检查
+  export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=384}"
+  log "Memory before frontend build / 前端构建前内存:"
+  free -h || true
   npm ci
-  npm run build
+  # Production bundle only (CI/local still use npm run build with vue-tsc)
+  # 仅打包生产资源（完整 vue-tsc 检查仍在本地/CI 的 npm run build）
+  npx vite build
   cd "$DEPLOY_PATH"
 
   log "Restarting API service / 重启 API 服务"
