@@ -143,6 +143,32 @@ curl -s http://127.0.0.1:8000/api/v1/health
 curl -s http://YOUR_SERVER_IP/api/v1/health
 ```
 
+### Nginx: `duplicate default server` / 重复 default_server
+
+On CentOS, stock `/etc/nginx/nginx.conf` often already has `listen ... default_server` on `:80`.  
+If `erp_demo.conf` also used `default_server`, `nginx -t` fails with:
+
+CentOS 自带 `/etc/nginx/nginx.conf` 常在 `:80` 已有 `default_server`。  
+若 `erp_demo.conf` 也写了 `default_server`，`nginx -t` 会报：
+
+`nginx: [emerg] a duplicate default server for 0.0.0.0:80`
+
+Fix on the server / 服务器上快速修复：
+
+```bash
+# 1) Remove default_server from ERP site / 从 ERP 站点配置去掉 default_server
+sudo sed -i -E 's/ default_server//g' /etc/nginx/conf.d/erp_demo.conf
+
+# 2) Also strip it from main nginx.conf listen lines / 主配置 listen 行同样去掉
+sudo cp -a /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+sudo sed -i -E '/listen/s/[[:space:]]+default_server//g' /etc/nginx/nginx.conf
+
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Current `nginx.conf.example` no longer sets `default_server`; bootstrap also neutralizes the stock one.  
+当前示例配置已不再使用 `default_server`；bootstrap 也会中和系统自带的。
+
 Firewall: open **80** (and keep **51822** for SSH).  
 防火墙：开放 **80**（SSH 继续用 **51822**）。
 

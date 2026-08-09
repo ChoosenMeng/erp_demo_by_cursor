@@ -202,9 +202,18 @@ install_systemd_nginx() {
   if [[ -n "$SERVER_IP" ]]; then
     sed -i "s/YOUR_SERVER_IP/${SERVER_IP}/g" "$nginx_conf"
   fi
-  # Avoid conflicting default site if present / 避免与默认站点冲突
+  # Avoid duplicate default_server (CentOS embeds one in nginx.conf, not only conf.d)
+  # 避免重复 default_server（CentOS 常写在主 nginx.conf，不只是 conf.d）
   if [[ -f /etc/nginx/conf.d/default.conf ]]; then
     mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak || true
+  fi
+  # Strip default_server from main nginx.conf listen lines (keep listen ports)
+  # 从主 nginx.conf 的 listen 行去掉 default_server（保留端口监听）
+  if [[ -f /etc/nginx/nginx.conf ]] && grep -q 'default_server' /etc/nginx/nginx.conf; then
+    cp -a /etc/nginx/nginx.conf "/etc/nginx/nginx.conf.bak.$(date +%Y%m%d%H%M%S)"
+    # Only on listen lines: remove default_server, keep port / 仅改 listen 行：去掉 default_server，保留端口
+    sed -i -E '/listen/s/[[:space:]]+default_server//g' /etc/nginx/nginx.conf
+    log "Neutralized default_server in /etc/nginx/nginx.conf / 已中和主配置中的 default_server"
   fi
   nginx -t
   systemctl reload nginx
