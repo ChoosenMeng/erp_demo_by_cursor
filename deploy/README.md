@@ -143,6 +143,35 @@ curl -s http://127.0.0.1:8000/api/v1/health
 curl -s http://YOUR_SERVER_IP/api/v1/health
 ```
 
+### MySQL timeout on small VPS / 小内存 VPS 上 MySQL 超时
+
+`deploy.sh` waits ~5 minutes for MySQL. On ~1GiB RAM hosts, first `mysql:8` boot (InnoDB init) is slow and may need swap.  
+`deploy.sh` 会等待约 5 分钟。约 1GiB 内存主机上，MySQL 8 **首次**启动（InnoDB 初始化）很慢，务必先有 swap。
+
+If you see `MySQL did not become ready in time` / 若出现超时：
+
+```bash
+# 1) Container & memory / 容器与内存
+docker ps -a --filter name=erp-mysql
+docker logs --tail 80 erp-mysql
+free -h
+
+# 2) Password mismatch after changing deploy/.env /
+#    改过 .env 密码但数据卷仍是旧密码时 ping 会失败（可丢数据才重建）:
+cd /opt/erp_demo
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env down
+docker volume rm erp_demo_erp_mysql_data   # name may vary: docker volume ls | grep mysql
+# 卷名可能不同：docker volume ls | grep mysql
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+
+# 3) Re-run deploy / 重新部署
+sudo DEPLOY_PATH=/opt/erp_demo BRANCH=feature/m0-m1-scaffold \
+  bash /opt/erp_demo/deploy/deploy.sh
+```
+
+Align `deploy/.env` `MYSQL_*` with `backend/.env` `DATABASE_URL` before recreate.  
+重建前请让 `deploy/.env` 的 `MYSQL_*` 与 `backend/.env` 的 `DATABASE_URL` 一致。
+
 ### Nginx: `duplicate default server` / 重复 default_server
 
 On CentOS, stock `/etc/nginx/nginx.conf` often already has `listen ... default_server` on `:80`.  
