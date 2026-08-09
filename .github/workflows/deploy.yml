@@ -35,7 +35,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          script_stop: true
+          # script_stop removed: not supported by appleboy/ssh-action@v1.2.2
+          # script_stop 已移除：当前 action 版本不支持该输入
           command_timeout: 25m
           script: |
             set -euo pipefail
