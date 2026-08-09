@@ -12,6 +12,7 @@ venv/
 
 # Env / secrets
 .env
+deploy/.env
 *.db
 
 # Node

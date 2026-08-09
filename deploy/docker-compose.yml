@@ -1,0 +1,35 @@
+# MySQL only for ERP Demo on self-hosted server
+# 仅用于自有服务器上的 ERP Demo MySQL 容器
+#
+# Usage / 用法:
+#   cd /opt/erp_demo
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: erp-mysql
+    restart: unless-stopped
+    ports:
+      # Bind to localhost only — app on same host connects via 127.0.0.1
+      # 仅绑定本机，应用通过 127.0.0.1 访问，避免公网暴露数据库
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-erp_root_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-erp_demo}
+      MYSQL_USER: ${MYSQL_USER:-erp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erp_pass_change_me}
+    volumes:
+      - erp_mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-erp_root_change_me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  erp_mysql_data:

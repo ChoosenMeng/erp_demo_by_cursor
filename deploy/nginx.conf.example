@@ -1,0 +1,56 @@
+# Nginx example for accessing ERP Demo by server IP (HTTP :80)
+# 通过服务器 IP 访问 ERP Demo 的 Nginx 示例（HTTP 80 端口）
+#
+# Install / 安装:
+#   1. Replace YOUR_SERVER_IP below (optional for default_server)
+#      下面的 YOUR_SERVER_IP 可按需替换（使用 default_server 时可不依赖域名）
+#   2. sudo cp deploy/nginx.conf.example /etc/nginx/conf.d/erp_demo.conf
+#   3. sudo nginx -t && sudo systemctl reload nginx
+#
+# Note / 说明:
+#   Certificates are usually bound to a domain name. Pure IP HTTPS is uncommon.
+#   证书通常绑定域名；纯 IP 的 HTTPS 不常见。本示例先用 HTTP 便于学习自动部署。
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name YOUR_SERVER_IP _;
+
+    # Frontend static build / 前端构建产物
+    root /opt/erp_demo/frontend/dist;
+    index index.html;
+
+    client_max_body_size 20m;
+
+    # Vue Router history mode / Vue 路由 history 模式
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Backend API + OpenAPI docs / 后端 API 与文档
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /docs {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /redoc {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /openapi.json {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+    }
+}

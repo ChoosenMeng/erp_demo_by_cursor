@@ -1,0 +1,30 @@
+# systemd unit for ERP FastAPI (uvicorn)
+# ERP FastAPI（uvicorn）的 systemd 单元
+#
+# Install / 安装:
+#   sudo cp deploy/erp-api.service /etc/systemd/system/erp-api.service
+#   # Edit paths if DEPLOY_PATH is not /opt/erp_demo
+#   # 若部署目录不是 /opt/erp_demo，请修改路径
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now erp-api
+
+[Unit]
+Description=Cursor ERP Demo API (uvicorn)
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/erp_demo/backend
+Environment=PATH=/opt/erp_demo/.venv/bin:/usr/local/bin:/usr/bin
+ExecStart=/opt/erp_demo/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+
+# Hardening (optional) / 可选加固
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

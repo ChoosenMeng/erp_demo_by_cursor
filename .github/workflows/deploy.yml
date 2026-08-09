@@ -1,0 +1,54 @@
+# GitHub Actions → SSH deploy to self-hosted CentOS server
+# GitHub Actions 经 SSH 部署到自有 CentOS 服务器（方案 A）
+#
+# Required Secrets / 必填 Secrets:
+#   SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, SSH_PORT
+# Optional / 可选:
+#   DEPLOY_PATH (default /opt/erp_demo), DEPLOY_BRANCH
+
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - feature/m0-m1-scaffold
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Deploy over SSH
+        # 中文：通过 SSH 在服务器执行 deploy.sh（拉取、编译、重启）
+        # English: Run deploy.sh on the server via SSH (pull, build, restart)
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              DEPLOY_PATH="/opt/erp_demo"
+            fi
+            BRANCH="${{ secrets.DEPLOY_BRANCH }}"
+            if [ -z "$BRANCH" ]; then
+              BRANCH="feature/m0-m1-scaffold"
+            fi
+            echo "Deploy path: $DEPLOY_PATH"
+            echo "Branch: $BRANCH"
+            test -d "$DEPLOY_PATH/.git"
+            test -x "$DEPLOY_PATH/deploy/deploy.sh" || chmod +x "$DEPLOY_PATH/deploy/deploy.sh"
+            DEPLOY_PATH="$DEPLOY_PATH" BRANCH="$BRANCH" bash "$DEPLOY_PATH/deploy/deploy.sh"
