@@ -100,10 +100,16 @@ install_python() {
     return 0
   fi
 
-  log "Installing Miniconda (Python 3.13) / 安装 Miniconda（Python 3.13）"
-  local installer="/tmp/Miniconda3.sh"
-  curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o "$installer"
-  bash "$installer" -b -p /opt/miniconda3
+  # Reuse existing Miniconda if present / 若已安装 Miniconda 则复用，避免重装报错
+  if [[ ! -x /opt/miniconda3/bin/conda ]]; then
+    log "Installing Miniconda (Python 3.13) / 安装 Miniconda（Python 3.13）"
+    local installer="/tmp/Miniconda3.sh"
+    curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o "$installer"
+    bash "$installer" -b -p /opt/miniconda3
+  else
+    log "Miniconda already installed at /opt/miniconda3 / Miniconda 已存在，跳过安装"
+  fi
+
   # shellcheck disable=SC1091
   source /opt/miniconda3/etc/profile.d/conda.sh
 
@@ -114,9 +120,15 @@ install_python() {
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
   fi
 
-  # Prefer conda-forge to reduce reliance on defaults channels
-  # 优先使用 conda-forge，减少对 defaults 频道依赖
-  conda create -y -n cursor-erp-demo -c conda-forge python=3.13 pip
+  if ! conda env list | awk '{print $1}' | grep -qx 'cursor-erp-demo'; then
+    # Prefer conda-forge to reduce reliance on defaults channels
+    # 优先使用 conda-forge，减少对 defaults 频道依赖
+    log "Creating conda env cursor-erp-demo / 创建 conda 环境 cursor-erp-demo"
+    conda create -y -n cursor-erp-demo -c conda-forge python=3.13 pip
+  else
+    log "Conda env cursor-erp-demo already exists / conda 环境已存在"
+  fi
+
   ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/python /usr/local/bin/python3.13
   ln -sfn /opt/miniconda3/envs/cursor-erp-demo/bin/pip /usr/local/bin/pip3.13
   python3.13 --version
