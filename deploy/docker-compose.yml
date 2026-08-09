@@ -15,10 +15,10 @@ services:
       # 仅绑定本机，应用通过 127.0.0.1 访问，避免公网暴露数据库
       - "127.0.0.1:3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-erp_root_change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-erp_demo}
-      MYSQL_USER: ${MYSQL_USER:-erp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erp_pass_change_me}
+      MYSQL_USER: ${MYSQL_USER:-erp_admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erp_admin}
     volumes:
       - erp_mysql_data:/var/lib/mysql
     command:
@@ -26,7 +26,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-erp_root_change_me}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 5s
       timeout: 5s
       retries: 30

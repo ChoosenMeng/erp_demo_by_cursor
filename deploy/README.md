@@ -156,17 +156,17 @@ If logs show / 若日志出现：
 Fix on the server (do **not** paste passwords into chat) / 服务器上修复（**不要**把密码贴到聊天里）：
 
 ```bash
-# 1) Edit deploy/.env — MYSQL_USER must be erp (NOT root)
-#    编辑 deploy/.env：MYSQL_USER 必须是 erp（不能是 root）
+# 1) Edit deploy/.env — MYSQL_USER must be erp_admin (NOT root)
+#    编辑 deploy/.env：MYSQL_USER 必须是 erp_admin（不能是 root）
 sudo nano /opt/erp_demo/deploy/.env
-# MYSQL_USER=erp
-# MYSQL_ROOT_PASSWORD=...
-# MYSQL_PASSWORD=...
+# MYSQL_USER=erp_admin
+# MYSQL_ROOT_PASSWORD=root
+# MYSQL_PASSWORD=erp_admin
 
-# 2) Align backend DATABASE_URL to the same erp user/password
-#    让 backend DATABASE_URL 与 erp 用户/密码一致
+# 2) Align backend DATABASE_URL to the same erp_admin user/password
+#    让 backend DATABASE_URL 与 erp_admin 用户/密码一致
 sudo nano /opt/erp_demo/backend/.env
-# DATABASE_URL=mysql+pymysql://erp:YOUR_PASSWORD@127.0.0.1:3306/erp_demo?charset=utf8mb4
+# DATABASE_URL=mysql+pymysql://erp_admin:erp_admin@127.0.0.1:3306/erp_demo?charset=utf8mb4
 
 # 3) Recreate MySQL volume (only if data can be discarded) / 可丢数据时重建卷
 cd /opt/erp_demo
